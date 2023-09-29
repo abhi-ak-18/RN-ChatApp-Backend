@@ -5,15 +5,21 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const path = require("path");
 
+
+
 const app = express();
 const port = 8000;
 const cors = require("cors");
 app.use(cors());
 
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(passport.initialize());
 const jwt = require("jsonwebtoken");
+
+const defaultUserImage =
+  "https://img.freepik.com/free-psd/3d-illustration-person-with-sunglasses_23-2149436188.jpg?w=740&t=st=1695743723~exp=1695744323~hmac=4d6be87de3922dfabc655661c703e64977a02e24c03ae41905cd99a8d9114c0f";
 
 mongoose
   .connect("mongodb+srv://jodduser:jodduser@cluster0.hd4qsmk.mongodb.net/", {
@@ -57,7 +63,12 @@ app.post("/register", (req, res) => {
   const { name, email, password, image } = req.body;
 
   //create a new user object
-  const newUser = new User({ name, email, password, image });
+  const newUser = new User({
+    name,
+    email,
+    password,
+    image: image || defaultUserImage,
+  });
 
   //save the user to the database
   newUser
@@ -117,24 +128,44 @@ app.get("/users/:userId", (req, res) => {
 
 // A new endpoint to fetch the username of the currently logged-in user
 app.get("/username/:userId", async (req, res) => {
-    try {
-      const { userId } = req.params;
-  
-      // Fetch the user data from the user ID and return the username
-      const user = await User.findById(userId).lean();
-  
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-  
-      const username = user.name;
-      res.status(200).json({ username });
-    } catch (error) {
-      console.log(error);
-      res.status(500).json({ message: "Internal Server Error" });
+  try {
+    const { userId } = req.params;
+
+    // Fetch the user data from the user ID and return the username
+    const user = await User.findById(userId).lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-  });
-  
+
+    const username = user.name;
+    res.status(200).json({ username });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// Endpoint to get the user's image by user ID
+app.get("/user-image/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Fetch the user data from the user ID and return the image URL
+    const user = await User.findById(userId).lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const userImage = user.image || defaultUserImage; // Get the user's image URL
+
+    res.status(200).json({ userImage });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 //endpoint to send a request to a user
 app.post("/friend-request", async (req, res) => {
